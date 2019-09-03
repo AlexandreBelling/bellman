@@ -166,11 +166,24 @@ pub fn multiexp<Q, D, G, S>(
           G: CurveAffine,
           S: SourceBuilder<G>
 {
-    let c = if exponents.len() < 32 {
+    let mut c = if exponents.len() < 32 {
         3u32
     } else {
         (f64::from(exponents.len() as u32)).ln().ceil() as u32
     };
+
+    // num_bits_multiplier is a constant that help limiting the number of  
+    let num_bits = <G::Engine as ScalarEngine>::Fr::NUM_BITS as u32;
+    let num_bits_multiplier = {
+        if num_bits <= 300 { 1 }
+        else if num_bits <= 600 { 2 }
+        else if num_bits <= 900 { 3 }
+        else { 
+            (f64::from(num_bits) / 300f64).ceil() as u32
+        }
+    };
+
+    c *= num_bits_multiplier;
 
     if let Some(query_size) = density_map.as_ref().get_query_size() {
         // If the density map has a known query size, it should not be
@@ -195,11 +208,25 @@ pub fn dense_multiexp<G: CurveAffine>(
     if exponents.len() != bases.len() {
         return Err(SynthesisError::AssignmentMissing);
     }
-    let c = if exponents.len() < 32 {
+    
+    let mut c = if exponents.len() < 32 {
         3u32
     } else {
         (f64::from(exponents.len() as u32)).ln().ceil() as u32
     };
+
+    // num_bits_multiplier is a constant that help limiting the number of  
+    let num_bits = <G::Engine as ScalarEngine>::Fr::NUM_BITS as u32;
+    let num_bits_multiplier = {
+        if num_bits <= 300 { 1 }
+        else if num_bits <= 600 { 2 }
+        else if num_bits <= 900 { 3 }
+        else { 
+            (f64::from(num_bits) / 300f64).ceil() as u32
+        }
+    };
+
+    c *= num_bits_multiplier;
 
     dense_multiexp_inner(pool, bases, exponents, 0, c, true)
 }
